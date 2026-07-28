@@ -25,3 +25,8 @@ app.post("/echo", (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
+app.post("/upload", upload.single("file"), (req, res) => {
+    res.json(req.file);
+});
