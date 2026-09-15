@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const { extractText } = require("../services/textExtraction");
+const prisma = require("../services/prismaClient");
 
 const router = express.Router();
 
@@ -26,10 +27,17 @@ router.post("/", upload.single("file"), async (req, res) => {
             return res.status(422).json({ error: "File appears to be empty or unreadable" });
         }
 
-        console.log("Extracted text preview:", extractedText.slice(0, 200));
+        const document = await prisma.document.create({
+            data: {
+                filename: req.file.filename,
+                originalName: originalName,
+                userId: 1,
+            },
+        });
 
         res.json({
-            originalName,
+            id: document.id,
+            originalName: document.originalName,
             textLength: extractedText.length,
             preview: extractedText.slice(0, 200),
         });
