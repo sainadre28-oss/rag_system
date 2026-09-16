@@ -3,6 +3,9 @@ const multer = require("multer");
 const fs = require("fs");
 const { extractText } = require("../services/textExtraction");
 const prisma = require("../services/prismaClient");
+const { chunkText } = require("../services/chunking");
+const { generateEmbedding } = require("../services/embeddings");
+const { addChunks } = require("../services/vectorDb");
 
 const router = express.Router();
 
@@ -35,11 +38,21 @@ router.post("/", upload.single("file"), async (req, res) => {
             },
         });
 
+        const chunks = chunkText(extractedText);
+
+        const embeddings = [];
+        for (const chunk of chunks) {
+            const vector = await generateEmbedding(chunk);
+            embeddings.push(vector);
+        }
+
+        await addChunks(document.id.toString(), chunks, embeddings);
+
         res.json({
             id: document.id,
             originalName: document.originalName,
             textLength: extractedText.length,
-            preview: extractedText.slice(0, 200),
+            chunkCount: chunks.length,
         });
     } catch (err) {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -48,8 +61,8 @@ router.post("/", upload.single("file"), async (req, res) => {
             return res.status(400).json({ error: "Unsupported file type. Use .pdf or .txt" });
         }
 
-        console.error("Extraction error:", err);
-        res.status(500).json({ error: "Failed to extract text from file" });
+        console.error("Upload processing error:", err);
+        res.status(500).json({ error: "Failed to process file" });
     }
 });
 

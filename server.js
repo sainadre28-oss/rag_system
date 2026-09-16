@@ -31,6 +31,8 @@ app.post("/echo", (req, res) => {
 });
 
 app.use("/upload", uploadRouter);
+const queryRouter = require("./routes/query");
+app.use("/query", queryRouter);
 
 app.use(multerErrorHandler);
 
