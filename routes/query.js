@@ -48,9 +48,13 @@ Answer:`;
         const result = await model.generateContent(prompt);
         const answer = result.response.text();
 
+        const sources = retrievedChunks.map((chunk, i) => ({
+            excerpt: chunk.slice(0, 150) + (chunk.length > 150 ? "..." : ""),
+        }));
+
         res.json({
             answer,
-            sourcesUsed: retrievedChunks.length,
+            sources,
         });
     } catch (err) {
         console.error("Query error:", err);

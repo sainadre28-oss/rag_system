@@ -151,7 +151,11 @@
                 if (!res.ok) {
                     answerBox.textContent = 'Error: ' + data.error;
                 } else {
-                    answerBox.textContent = data.answer + `\n\n(based on ${data.sourcesUsed} retrieved chunks)`;
+                    let sourcesText = '';
+                    if (data.sources && data.sources.length > 0) {
+                        sourcesText = '\n\n📎 Sources:\n' + data.sources.map((s, i) => `${i + 1}. "${s.excerpt}"`).join('\n');
+                    }
+                    answerBox.textContent = data.answer + sourcesText;
                 }
             } catch (err) {
                 answerBox.textContent = 'Network error: ' + err.message;

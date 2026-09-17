@@ -12,6 +12,13 @@ run();
 const express = require("express");
 const uploadRouter = require("./routes/upload");
 const { multerErrorHandler } = require("./middleware/errorHandler");
+const rateLimit = require("express-rate-limit");
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // 50 requests per window per IP
+    message: { error: "Too many requests, please try again later." },
+});
 
 const app = express();
 const PORT = 3000;
@@ -30,6 +37,7 @@ app.get("/hello/:name", (req, res) => {
 app.post("/echo", (req, res) => {
     res.json(req.body);
 });
+app.use(limiter);
 
 app.use("/upload", uploadRouter);
 const queryRouter = require("./routes/query");
