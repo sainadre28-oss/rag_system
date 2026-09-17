@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>RAG Knowledge Base</title>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f7f7f8;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #111;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        #uploadStatus,
+        #answerBox {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f0f0f0;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        #uploadStatus.show,
+        #answerBox.show {
+            display: block;
+        }
+
+        .docList {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📄 RAG Knowledge Base</h1>
+
+    <div class="card">
+        <h2>1. Upload a document</h2>
+        <input type="file" id="fileInput" accept=".pdf,.txt">
+        <button id="uploadBtn">Upload</button>
+        <div id="uploadStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Ask a question</h2>
+        <input type="text" id="questionInput" placeholder="Ask something about your uploaded document...">
+        <button id="askBtn">Ask</button>
+        <div id="answerBox"></div>
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const askBtn = document.getElementById('askBtn');
+        const questionInput = document.getElementById('questionInput');
+        const answerBox = document.getElementById('answerBox');
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) { alert('Choose a file first'); return; }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            uploadStatus.className = 'show';
+            uploadStatus.textContent = 'Processing document (extracting, chunking, embedding)...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    uploadStatus.textContent = 'Error: ' + data.error;
+                } else {
+                    uploadStatus.textContent = `✅ Uploaded "${data.originalName}" — ${data.chunkCount} chunks created. You can now ask questions about it.`;
+                }
+            } catch (err) {
+                uploadStatus.textContent = 'Network error: ' + err.message;
+            }
+
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload';
+        });
+
+        askBtn.addEventListener('click', async () => {
+            const question = questionInput.value.trim();
+            if (!question) { alert('Type a question first'); return; }
+
+            askBtn.disabled = true;
+            askBtn.textContent = 'Thinking...';
+            answerBox.className = 'show';
+            answerBox.textContent = 'Retrieving relevant chunks and generating an answer...';
+
+            try {
+                const res = await fetch('/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    answerBox.textContent = 'Error: ' + data.error;
+                } else {
+                    answerBox.textContent = data.answer + `\n\n(based on ${data.sourcesUsed} retrieved chunks)`;
+                }
+            } catch (err) {
+                answerBox.textContent = 'Network error: ' + err.message;
+            }
+
+            askBtn.disabled = false;
+            askBtn.textContent = 'Ask';
+        });
+    </script>
+
+</body>
+
+</html>
